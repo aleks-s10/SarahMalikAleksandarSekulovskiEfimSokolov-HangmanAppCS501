@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +35,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-class HangmanState {
+class HangmanState(
+    index: Int = -1,
+    initialWord: String = "",
+    initialHint: String = "",
+    initialGuessedLetters: Set<Char> = setOf(),
+    initialRemainingAttempts: Int = 6,
+    initialGameState: GameState = GameState.PLAYING,
+    initialHintState: HintState = HintState.INITIAL
+) {
     private val words = listOf("KOTLIN", "COMPOSE", "ANDROID", "JETPACK", "MOBILE")
     private val hints = listOf(
         "A modern programming language",
@@ -43,19 +53,22 @@ class HangmanState {
         "Relating to portable devices"
     )
 
-    var word by mutableStateOf("")
-    var hint by mutableStateOf("")
-    var guessedLetters by mutableStateOf(setOf<Char>())
-    var remainingAttempts by mutableIntStateOf(6)
-    var gameState by mutableStateOf(GameState.PLAYING)
-    var hintState by mutableStateOf(HintState.INITIAL)
+    var word by mutableStateOf(initialWord)
+    var hint by mutableStateOf(initialHint)
+    var guessedLetters by mutableStateOf(initialGuessedLetters)
+    var remainingAttempts by mutableIntStateOf(initialRemainingAttempts)
+    var gameState by mutableStateOf(initialGameState)
+    var hintState by mutableStateOf(initialHintState)
+    var index by mutableStateOf(index)
 
     init {
-        newGame()
+        if (index == -1){
+            newGame()
+        }
     }
 
     fun newGame() {
-        val index = words.indices.random()
+        index = words.indices.random()
         word = words[index]
         hint = hints[index]
         guessedLetters = setOf()
@@ -107,9 +120,45 @@ class HangmanState {
 enum class GameState { PLAYING, WON, LOST }
 enum class HintState { INITIAL, HINT_SHOWN, HALF_LETTERS_DISABLED, VOWELS_SHOWN }
 
+
+val hangmanStateSaver = Saver<HangmanState, Bundle>(
+    save = { state ->
+        val bundle = Bundle().apply {
+            putInt("index", state.index)
+            putString("word", state.word)
+            putString("hint", state.hint)
+            putCharArray("guessedLetters", state.guessedLetters.toCharArray())
+            putInt("remainingAttempts", state.remainingAttempts)
+            putString("gameState", state.gameState.name)
+            putString("hintState", state.hintState.name)
+        }
+        bundle
+    },
+    restore = { bundle ->
+        val index = bundle.getInt("index")
+        val word = bundle.getString("word") ?: return@Saver null
+        val hint = bundle.getString("hint") ?: return@Saver null
+        val guessedLetters = bundle.getCharArray("guessedLetters")?.toSet() ?: setOf()
+        val remainingAttempts = bundle.getInt("remainingAttempts")
+        val gameState = bundle.getString("gameState")?.let { GameState.valueOf(it) } ?: GameState.PLAYING
+        val hintState = bundle.getString("hintState")?.let { HintState.valueOf(it) } ?: HintState.INITIAL
+
+        HangmanState(
+            index = index,
+            initialWord = word,
+            initialHint = hint,
+            initialGuessedLetters = guessedLetters,
+            initialRemainingAttempts = remainingAttempts,
+            initialGameState = gameState,
+            initialHintState = hintState
+        )
+    }
+)
+
 @Composable
 fun HangmanGame(modifier: Modifier = Modifier) {
-    val hangmanState = remember { HangmanState() }
+    
+    val hangmanState = rememberSaveable(saver = hangmanStateSaver) { HangmanState() }
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
@@ -206,8 +255,8 @@ fun LetterButtons(hangmanState: HangmanState) {
                     ) {
                         Text(
                             text = letter.toString(),
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontSize = 18.sp,
+                            color = Color.Black,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                         )
                     }
