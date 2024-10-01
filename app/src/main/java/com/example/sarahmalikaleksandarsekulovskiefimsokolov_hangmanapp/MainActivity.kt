@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -180,7 +181,13 @@ fun LandscapeLayout(hangmanState: HangmanState, modifier: Modifier = Modifier) {
         ) {
             GamePlayScreen(hangmanState)
             Spacer(modifier = Modifier.height(16.dp))
-            NewGameButton(hangmanState)
+            Row {
+                NewGameButton(hangmanState, modifier = Modifier.weight(1f))
+                Spacer(modifier = Modifier.width(5.dp))
+                HintButton(hangmanState, modifier = Modifier.weight(1f))
+            }
+            Spacer(modifier = Modifier.height(5.dp))
+            HintDisplay(hangmanState)
         }
         Column(
             modifier = Modifier
@@ -189,8 +196,6 @@ fun LandscapeLayout(hangmanState: HangmanState, modifier: Modifier = Modifier) {
                 .verticalScroll(rememberScrollState())
         ) {
             LetterButtons(hangmanState)
-            Spacer(modifier = Modifier.height(16.dp))
-            HintButton(hangmanState)
         }
     }
 }
@@ -207,7 +212,13 @@ fun PortraitLayout(hangmanState: HangmanState, modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(16.dp))
         LetterButtons(hangmanState)
         Spacer(modifier = Modifier.height(16.dp))
-        NewGameButton(hangmanState)
+        Row {
+            NewGameButton(hangmanState, modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(5.dp))
+            HintButton(hangmanState, modifier = Modifier.weight(1f))
+        }
+        Spacer(modifier = Modifier.height(5.dp))
+        HintDisplay(hangmanState)
     }
 }
 
@@ -232,7 +243,7 @@ fun GamePlayScreen(hangmanState: HangmanState) {
 
 @Composable
 fun LetterButtons(hangmanState: HangmanState) {
-    val letters = ('A'..'Z').chunked(7)
+    val letters = ('A'..'Z').chunked(5)
     Column {
         letters.forEach { row ->
             Row(
@@ -244,7 +255,7 @@ fun LetterButtons(hangmanState: HangmanState) {
                         onClick = { hangmanState.guessLetter(letter) },
                         modifier = Modifier
                             .padding(4.dp)
-                            .size(48.dp),
+                            .weight(1f),
                         enabled = letter !in hangmanState.guessedLetters && hangmanState.gameState == GameState.PLAYING,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
@@ -255,7 +266,7 @@ fun LetterButtons(hangmanState: HangmanState) {
                     ) {
                         Text(
                             text = letter.toString(),
-                            color = Color.Black,
+                            color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                         )
@@ -267,31 +278,40 @@ fun LetterButtons(hangmanState: HangmanState) {
 }
 
 @Composable
-fun NewGameButton(hangmanState: HangmanState) {
+fun NewGameButton(hangmanState: HangmanState, modifier: Modifier = Modifier) {
     Button(
         onClick = { hangmanState.newGame() },
-        modifier = Modifier.fillMaxWidth()
+        modifier = modifier,
     ) {
         Text("New Game")
     }
 }
 
 @Composable
-fun HintButton(hangmanState: HangmanState) {
+fun HintButton(hangmanState: HangmanState, modifier: Modifier = Modifier) {
     Button(
         onClick = { hangmanState.useHint() },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier,
         enabled = hangmanState.gameState == GameState.PLAYING && hangmanState.hintState != HintState.VOWELS_SHOWN && hangmanState.remainingAttempts > 1
     ) {
         Text("Hint")
     }
+}
 
+@Composable
+fun HintDisplay(hangmanState: HangmanState){
+    val message: String
     when (hangmanState.hintState) {
-        HintState.HINT_SHOWN -> Text(hangmanState.hint)
-        HintState.HALF_LETTERS_DISABLED -> Text("Half of the remaining letters have been disabled")
-        HintState.VOWELS_SHOWN -> Text("All vowels have been revealed")
-        else -> {}
+        HintState.HINT_SHOWN -> message = hangmanState.hint
+        HintState.HALF_LETTERS_DISABLED -> message = "Half of the remaining letters have been disabled"
+        HintState.VOWELS_SHOWN -> message = "All vowels have been revealed"
+        else -> message = ""
     }
+    Text(
+        message,
+        modifier = Modifier.fillMaxWidth(),
+        textAlign = TextAlign.Center
+    )
 }
 
 @Preview(showBackground = true)
